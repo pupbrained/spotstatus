@@ -17,24 +17,28 @@ use {
 fn send_to_endpoint(tx: Sender<String>, spotify: AuthCodeSpotify) {
     tokio::spawn(async move {
         loop {
-            let val = match spotify.current_user_playing_item().await.unwrap() {
-                Some(CurrentlyPlayingContext {
-                    item: Some(PlayableItem::Track(FullTrack { artists, name, .. })),
-                    ..
-                }) => format!(
-                    "{} - {}",
-                    artists
-                        .iter()
-                        .map(|x| x.clone().name)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    name
-                ),
-                _ => "No song playing".to_string(),
+            let val = match spotify.current_user_playing_item().await {
+                Ok(val) => match val {
+                    Some(CurrentlyPlayingContext {
+                        item: Some(PlayableItem::Track(FullTrack { artists, name, .. })),
+                        ..
+                    }) => format!(
+                        "{} - {}",
+                        artists
+                            .iter()
+                            .map(|x| x.clone().name)
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                        name
+                    ),
+                    None => "No song playing".to_string(),
+                    _ => "Unknown".to_string(),
+                },
+                Err(e) => format!("Error! {}", e),
             };
 
             tx.send(val).expect("Failed to update value");
-            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
     });
 }
