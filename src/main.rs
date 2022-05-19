@@ -38,7 +38,7 @@ fn send_to_endpoint(tx: Sender<String>, spotify: AuthCodeSpotify) {
             };
 
             tx.send(val).expect("Failed to update value");
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
         }
     });
 }
@@ -58,7 +58,7 @@ fn refresh_token(spotify: AuthCodeSpotify) {
                 .refresh_token()
                 .await
                 .expect("Couldn't refresh user token!");
-            tokio::time::sleep(tokio::time::Duration::from_secs(60 * 60)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(60 * 59)).await;
         }
     });
 }
