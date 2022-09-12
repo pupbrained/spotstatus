@@ -2,8 +2,10 @@ use {
     dotenv::dotenv,
     rocket::{
         get,
-        http::{ContentType, Status},
+        http::{ContentType, Status, Header},
         launch, routes, State,
+        Request, Response,
+        fairing::{Fairing, Info, Kind}
     },
     rspotify::{
         clients::{BaseClient, OAuthClient},
@@ -14,6 +16,22 @@ use {
     tokio::sync::watch::{self, Receiver, Sender},
 };
 
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to responses",
+            kind: Kind::Response
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+    }
+}
+
 fn send_to_endpoint(tx: Sender<String>, spotify: AuthCodeSpotify) {
     tokio::spawn(async move {
         loop {
@@ -23,7 +41,7 @@ fn send_to_endpoint(tx: Sender<String>, spotify: AuthCodeSpotify) {
                         item: Some(PlayableItem::Track(FullTrack { artists, name, .. })),
                         ..
                     }) => format!(
-                        "{} - {}",
+                        "{} - {} -",
                         artists
                             .iter()
                             .map(|x| x.clone().name)
@@ -58,7 +76,7 @@ fn refresh_token(spotify: AuthCodeSpotify) {
                 .refresh_token()
                 .await
                 .expect("Couldn't refresh user token!");
-            tokio::time::sleep(tokio::time::Duration::from_secs(60 * 59)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(60 * 58)).await;
         }
     });
 }
@@ -87,4 +105,5 @@ async fn rocket() -> _ {
         .manage(spotify)
         .manage(rx)
         .mount("/", routes![get_song])
+        .attach(CORS)
 }
